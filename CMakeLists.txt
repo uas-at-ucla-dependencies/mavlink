@@ -38,6 +38,7 @@ include(CheckLibraryExists)
 #include(CheckCXXSourceCompiles)
 #include(CheckCSourceCompiles)
 include(ExternalProjectWithFilename)
+include(CMakePackageConfigHelpers)
 
 if (UNIX)
     include(GNUInstallDirs)
@@ -121,37 +122,73 @@ configure_file(config.h.in config.h)
 install(FILES ${CMAKE_BINARY_DIR}/config.h DESTINATION include/${PROJECT_NAME} COMPONENT Dev)
 
 # mavlink generation
-macro(generateMavlink version definitions)
-    foreach(definition ${definitions})
-        set(targetName ${definition}-v${version})
-        set(definitionAbsPath ${MAVLINK_SOURCE_DIR}/message_definitions/v${version}/${definition})
-        message(STATUS "processing: ${definitionAbsPath}")
-        add_custom_command( 
-            OUTPUT ${targetName}-stamp
-            COMMAND PYTHONPATH=$ENV{PYTHONPATH}:${CMAKE_CURRENT_SOURCE_DIR} ${PYTHON_EXECUTABLE} -m pymavlink.tools.mavgen --lang=C --wire-protocol=${version}
-                --output=include/v${version} ${definitionAbsPath}
-            COMMAND touch ${targetName}-stamp
+set(mavgen_path ${CMAKE_SOURCE_DIR}/pymavlink/tools/mavgen.py)
+set(common_xml_path ${CMAKE_SOURCE_DIR}/message_definitions/v1.0/common.xml)
+macro(generateMavlink_v10 definitions)
+    foreach(definitionAbsPath ${definitions})
+        get_filename_component(definition ${definitionAbsPath} NAME_WE)
+        message(STATUS "processing v1.0: ${definitionAbsPath}")
+        add_custom_command(
+            OUTPUT include/v1.0/${definition}/${definition}.h
+            COMMAND /usr/bin/env PYTHONPATH="${CMAKE_SOURCE_DIR}:$ENV{PYTHONPATH}"
+                ${PYTHON_EXECUTABLE} ${mavgen_path} --lang=C --wire-protocol=1.0
+                --output=include/v1.0 ${definitionAbsPath}
+            DEPENDS ${definitionAbsPath} ${common_xml_path} ${mavgen_path}
             )
-        add_custom_target(${targetName} ALL DEPENDS ${targetName}-stamp)
+        add_custom_target(${definition}.xml-v1.0
+            ALL DEPENDS include/v1.0/${definition}/${definition}.h
+            )
+    endforeach()
+endmacro()
+macro(generateMavlink_v20 definitions)
+    foreach(definitionAbsPath ${definitions})
+        get_filename_component(definition ${definitionAbsPath} NAME_WE)
+        message(STATUS "processing v2.0: ${definitionAbsPath}")
+
+        # mavgen C++ also do C gen
+        add_custom_command(
+            OUTPUT ${definition}-v2.0-cxx-stamp
+            #OUTPUT include/v2.0/${definition}/${definition}.hpp
+            COMMAND /usr/bin/env PYTHONPATH="${CMAKE_SOURCE_DIR}:$ENV{PYTHONPATH}"
+                ${PYTHON_EXECUTABLE} ${mavgen_path} --lang=C++11 --wire-protocol=2.0
+                --output=include/v2.0 ${definitionAbsPath}
+            COMMAND touch ${definition}-v2.0-cxx-stamp
+            DEPENDS ${definitionAbsPath} ${common_xml_path} ${mavgen_path}
+            )
+        add_custom_target(${definition}.xml-v2.0
+            ALL DEPENDS
+                ${definition}-v2.0-cxx-stamp
+                #include/v2.0/${definition}/${definition}.hpp
+            )
+    endforeach()
+
+    # XXX NOTE: that is workaround v2.0 mavgen bug:
+    #           when it generate other dialect than common.xml
+    #           resulting common.h/.hpp does not have extended enums like MAV_CMD
+    #
+    #           So we use stamp file to force run of mavgen and add all other xml to common.xml dependencies.
+    foreach(definitionAbsPath ${definitions})
+        get_filename_component(definition ${definitionAbsPath} NAME_WE)
+        add_dependencies(common.xml-v2.0 ${definition}.xml-v2.0)
     endforeach()
 endmacro()
 
-# build
-set(mavgen -m pymavlink.tools.mavgen)
-set(v1.0Definitions
-    ASLUAV.xml
-    ardupilotmega.xml
-    autoquad.xml
-    common.xml
-    matrixpilot.xml
-    minimal.xml
-    paparazzi.xml
-    python_array_test.xml
-    slugs.xml
-    test.xml
-    ualberta.xml
-    )
-generateMavlink("1.0" "${v1.0Definitions}")
+# build v1.0
+file(GLOB V10DEFINITIONS ${CMAKE_SOURCE_DIR}/message_definitions/v1.0/*.xml)
+
+# do not generate testing dialects
+foreach(definition minimal test python_array_test)
+    list(REMOVE_ITEM V10DEFINITIONS "${CMAKE_SOURCE_DIR}/message_definitions/v1.0/${definition}.xml")
+endforeach()
+list(SORT V10DEFINITIONS)
+
+generateMavlink_v10("${V10DEFINITIONS}")
+
+# build v2.0 if it is supported. for now it uses same definitions as v1.0
+if(EXISTS "${CMAKE_SOURCE_DIR}/pymavlink/generator/C/include_v2.0")
+    set(V20DEFINITIONS "${V10DEFINITIONS}")
+    generateMavlink_v20("${V20DEFINITIONS}")
+endif()
 
 # testing
 if (BUILD_TEST)
@@ -177,6 +214,35 @@ install(FILES
     ${PROJECT_BINARY_DIR}/${PROJECT_NAME}.pc
     DESTINATION lib${LIB_SUFFIX}/pkgconfig COMPONENT Dev
     )
+
+set(PKG_NAME ${PROJECT_NAME})
+set(PKG2_NAME "${PROJECT_NAME}2")
+set(PKG_VERSION ${PROJECT_VERSION})
+set(PKG_DESC "MAVLink micro air vehicle marshalling / communication library")
+set(PKG_LIBRARIES )
+set(PKG_DEPENDS )
+set(PKG_MAVLINK_DEFINITIONS "${V10DEFINITIONS}")
+set(PKG2_MAVLINK_DEFINITIONS "${V20DEFINITIONS}")
+foreach(def ${V10DEFINITIONS})
+    get_filename_component(dialect "${def}" NAME_WE)
+    list(APPEND PKG_MAVLINK_DIALECTS ${dialect})
+endforeach()
+foreach(def ${V20DEFINITIONS})
+    get_filename_component(dialect "${def}" NAME_WE)
+    list(APPEND PKG2_MAVLINK_DIALECTS ${dialect})
+endforeach()
+
+set(cmake_package_name ${PROJECT_NAME})
+set(targets_export_name ${cmake_package_name}Targets CACHE INTERNAL "")
+set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated" CACHE INTERNAL "")
+set(cmake_files_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${cmake_package_name}")
+set(version_file "${generated_dir}/${cmake_package_name}ConfigVersion.cmake")
+write_basic_package_version_file(${version_file} VERSION ${PROJECT_VERSION} COMPATIBILITY AnyNewerVersion)
+set(config_file "${generated_dir}/${cmake_package_name}Config.cmake")
+configure_package_config_file("cmake/${PROJECT_NAME}-config.cmake.in"
+    "${config_file}" INSTALL_DESTINATION ${cmake_files_install_dir})
+install(FILES ${version_file} ${config_file}
+    DESTINATION ${cmake_files_install_dir})
 
 ### packaging
 
