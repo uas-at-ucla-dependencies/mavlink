@@ -1,41 +1,37 @@
 <?xml version="1.0"?>
 <mavlink>
-
-    <include>common.xml</include>
-    <!-- <version>9</version> -->
-    <dialect>3</dialect>
-
-    <enums>
-        <enum name="MAV_CMD">
-            <!-- Default description -->
-            <description>Commands to be executed by the MAV. They can be executed on user request, or as part of a mission script. If the action is used in a mission, the parameter mapping to the waypoint/mission message is as follows: Param 1, Param 2, Param 3, Param 4, X: Param 5, Y:Param 6, Z:Param 7. This command list is similar what ARINC 424 is for commercial aircraft: A data format how to interpret waypoint/mission data.</description>
-            <entry value="43001" name="MAV_CMD_AVIATA_FINALIZE_DOCKING">
-                <description>Configure the mixer once docked based on the docking slot and the missing drones. Also update PID values, flight controller orientation, etc.</description>
-                <param index="1" label="docking_slot" default="0">1-indexed docking slot</param>
-                <param index="2" label="missing_drone_0" default="0">1-indexed slot number of 1st missing drone, or 0 if not missing</param>
-                <param index="3" label="missing_drone_1" default="0">1-indexed slot number of 2nd missing drone, or 0 if not missing</param>
-                <param index="4" label="missing_drone_2" default="0">1-indexed slot number of 3rd missing drone, or 0 if not missing</param>
-                <param index="5" label="missing_drone_3" default="0">1-indexed slot number of 4th missing drone, or 0 if not missing</param>
-                <param index="6" label="missing_drone_4" default="0">1-indexed slot number of 5th missing drone, or 0 if not missing</param>
-                <param index="7" label="missing_drone_5" default="0">1-indexed slot number of 6th missing drone, or 0 if not missing</param>
-            </entry>
-            <entry value="43002" name="MAV_CMD_AVIATA_SET_CONFIGURATION">
-                <description>Update the mixer according to which drones are missing.</description>
-                <param index="2" label="missing_drone_0" default="0">1-indexed slot number of 1st missing drone, or 0 if not missing</param>
-                <param index="3" label="missing_drone_1" default="0">1-indexed slot number of 2nd missing drone, or 0 if not missing</param>
-                <param index="4" label="missing_drone_2" default="0">1-indexed slot number of 3rd missing drone, or 0 if not missing</param>
-                <param index="5" label="missing_drone_3" default="0">1-indexed slot number of 4th missing drone, or 0 if not missing</param>
-                <param index="6" label="missing_drone_4" default="0">1-indexed slot number of 5th missing drone, or 0 if not missing</param>
-                <param index="7" label="missing_drone_5" default="0">1-indexed slot number of 6th missing drone, or 0 if not missing</param>
-            </entry>
-            <entry value="43003" name="MAV_CMD_AVIATA_SET_STANDALONE">
-                <description>Set mixer and parameters back to the values for a standalone drone.</description>
-            </entry>
-        </enum>
-    </enums>
-
-    <messages>
-        <!-- Messages are defined here (optional) -->
-    </messages>
-
+  <include>common.xml</include>
+  <!-- <version>9</version> -->
+  <dialect>3</dialect>
+  <enums>
+    <enum name="MAV_CMD">
+      <!-- Default description -->
+      <description>Commands to be executed by the MAV. They can be executed on user request, or as part of a mission script. If the action is used in a mission, the parameter mapping to the waypoint/mission message is as follows: Param 1, Param 2, Param 3, Param 4, X: Param 5, Y:Param 6, Z:Param 7. This command list is similar what ARINC 424 is for commercial aircraft: A data format how to interpret waypoint/mission data.</description>
+      <entry value="43001" name="MAV_CMD_AVIATA_FINALIZE_DOCKING">
+        <description>Configure the mixer once docked based on the docking slot and the missing drones. Also update PID values, flight controller orientation, etc.</description>
+        <param index="1" label="docking_slot" default="0">1-indexed docking slot</param>
+        <param index="2" label="missing_drone_0" default="0">1-indexed slot number of 1st missing drone, or 0 if not missing</param>
+        <param index="3" label="missing_drone_1" default="0">1-indexed slot number of 2nd missing drone, or 0 if not missing</param>
+        <param index="4" label="missing_drone_2" default="0">1-indexed slot number of 3rd missing drone, or 0 if not missing</param>
+        <param index="5" label="missing_drone_3" default="0">1-indexed slot number of 4th missing drone, or 0 if not missing</param>
+        <param index="6" label="missing_drone_4" default="0">1-indexed slot number of 5th missing drone, or 0 if not missing</param>
+        <param index="7" label="missing_drone_5" default="0">1-indexed slot number of 6th missing drone, or 0 if not missing</param>
+      </entry>
+      <entry value="43002" name="MAV_CMD_AVIATA_SET_CONFIGURATION">
+        <description>Update the mixer according to which drones are missing.</description>
+        <param index="2" label="missing_drone_0" default="0">1-indexed slot number of 1st missing drone, or 0 if not missing</param>
+        <param index="3" label="missing_drone_1" default="0">1-indexed slot number of 2nd missing drone, or 0 if not missing</param>
+        <param index="4" label="missing_drone_2" default="0">1-indexed slot number of 3rd missing drone, or 0 if not missing</param>
+        <param index="5" label="missing_drone_3" default="0">1-indexed slot number of 4th missing drone, or 0 if not missing</param>
+        <param index="6" label="missing_drone_4" default="0">1-indexed slot number of 5th missing drone, or 0 if not missing</param>
+        <param index="7" label="missing_drone_5" default="0">1-indexed slot number of 6th missing drone, or 0 if not missing</param>
+      </entry>
+      <entry value="43003" name="MAV_CMD_AVIATA_SET_STANDALONE">
+        <description>Set mixer and parameters back to the values for a standalone drone.</description>
+      </entry>
+    </enum>
+  </enums>
+  <messages>
+    <!-- Messages are defined here (optional) -->
+  </messages>
 </mavlink>
